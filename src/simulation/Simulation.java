@@ -21,6 +21,7 @@ import com.unimelb.swen30006.wifimodem.WifiModem;
 import automail.Automail;
 import automail.MailItem;
 import automail.MailPool;
+import automail.MailPoolFactory;
 
 /**
  * This class simulates the behaviour of AutoMail
@@ -81,21 +82,16 @@ public class Simulation {
          * This code section is for running a simulation
          */
         /* Instantiate MailPool and Automail */
-     	MailPool mailPool = new MailPool(NUM_ROBOTS);
+     	//MailPool mailPool = new MailPool(NUM_ROBOTS);
+        feeAdapter = new BMCFeeAdapterImpl(wModem);
+        chargeService = ChargeService.getInstance(feeAdapter,automailProperties);
+        MailPool mailPool = MailPoolFactory.getInstance(NUM_ROBOTS, CHARGE_THRESHOLD, chargeService);
+        
 		CHARGE_THRESHOLD = Double.parseDouble(automailProperties.getProperty("ChargeThreshold"));
 		CHARGE_DISPLAY = Boolean.valueOf(automailProperties.getProperty("CommercialDisplay"));
 
-     	IMailDelivery delivery = null;
-     	if(CHARGE_THRESHOLD == 0){
-     		delivery = new ReportDelivery();
-		}
-     	else {
-			feeAdapter = new BMCFeeAdapterImpl(wModem);
-			chargeService = ChargeService.getInstance(feeAdapter,automailProperties);
-			delivery = new ReportAndChargeDelivery(chargeService);
-			mailPool = new PriorityMailPool(NUM_ROBOTS, CHARGE_THRESHOLD,chargeService);
-		}
-
+     	IMailDelivery delivery = DeliveryFactory.getInstance(CHARGE_THRESHOLD, chargeService);
+     	
         Automail automail = new Automail(mailPool, delivery, NUM_ROBOTS);
         MailGenerator mailGenerator = new MailGenerator(MAIL_TO_CREATE, MAIL_MAX_WEIGHT, mailPool, seedMap);
         
@@ -173,6 +169,17 @@ public class Simulation {
 		System.out.println("#Charge Display: " + CHARGE_DISPLAY);
 		
 		return automailProperties;
+    }
+    
+    static class DeliveryFactory {
+    	public static IMailDelivery getInstance(double chargeThreshold, ChargeServiceInterface chargeService) {
+    		if (chargeThreshold == 0) {
+    			return new ReportDelivery();
+    		}
+    		else {
+    			return new ReportAndChargeDelivery(chargeService);
+    		}
+    	}
     }
     
     static class ReportDelivery implements IMailDelivery {
