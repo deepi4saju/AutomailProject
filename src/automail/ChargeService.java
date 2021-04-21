@@ -41,12 +41,12 @@ public class ChargeService implements ChargeServiceInterface{
 
         Double activityCost = 0D;
         //configurable property below
-        Double activityUnitPrice = Double.parseDouble(automailProperties.get("activityUnitPrice").toString());
+        Double activityUnitPrice = Double.parseDouble(automailProperties.get("ActivityUnitPrice").toString());
         Double stepMovementUnitCost = Double.parseDouble(automailProperties.get("stepMovementCost").toString());
 
         Double movementCostUnit = stepMovementUnitCost * deliveryItem.getDestFloor() * 2;
         Double lookUpCost = Double.parseDouble(automailProperties.get("lookUpCost").toString());
-        Double markUpPercentage = Double.parseDouble(automailProperties.get("markUpPercentage").toString());
+        Double markUpPercentage = Double.parseDouble(automailProperties.get("MarkupPercentage").toString());
 
         Double activityUnits = movementCostUnit + lookUpCost*1;
         activityCost = activityUnits * activityUnitPrice;

@@ -127,10 +127,10 @@ public class Simulation {
     	automailProperties.setProperty("ChargeThreshold", "0");
     	automailProperties.setProperty("ChargeDisplay", "false");
     	
-    	automailProperties.setProperty("activityUnitPrice","0.224");
+    	automailProperties.setProperty("ActivityUnitPrice","0.224");
     	automailProperties.setProperty("stepMovementCost","5");
     	automailProperties.setProperty("lookUpCost","0.1");
-    	automailProperties.setProperty("markUpPercentage","0.059");
+    	automailProperties.setProperty("MarkupPercentage","0.059");
     	
     	// Read properties
 		FileReader inStream = null;
