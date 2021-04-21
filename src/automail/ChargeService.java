@@ -2,30 +2,32 @@ package automail;
 
 import java.util.Properties;
 
+import adapter.BMCFeeAdapterImpl;
 import adapter.FeeAdapter;
+import adapter.FeeResponse;
 
 public class ChargeService implements ChargeServiceInterface{
 
     private static ChargeService _instance = null;
-    FeeAdapter feeAdapter;
-    Properties automailProperties;
+    private FeeAdapter feeAdapter;
+    private Properties automailProperties;
 
     private static Double totalCharge = 0D;
-    private static Double totalCost = 0D;
+    private static Double totalBillableActivityCost = 0D;
     private static Double totalFee = 0D;
-    private static Double totalActivity = 0D;
+    private static Double totalBillableActivity = 0D;
     
 
-    private ChargeService(FeeAdapter feeAdapter, Properties automailProperties) {
-        this.feeAdapter = feeAdapter;
+    private ChargeService(Properties automailProperties) {
+        this.feeAdapter = new BMCFeeAdapterImpl();
         this.automailProperties = automailProperties;
     }
 
-    public static ChargeService getInstance(FeeAdapter feeAdapter, Properties automailProperties) {
+    public static ChargeService getInstance(Properties automailProperties) {
         if (_instance == null) {
             synchronized (ChargeService.class) {
                 if (_instance == null) {
-                    _instance = new ChargeService(feeAdapter, automailProperties);
+                    _instance = new ChargeService(automailProperties);
                 }
             }
         }
@@ -33,32 +35,37 @@ public class ChargeService implements ChargeServiceInterface{
     }
 
     @Override
-    public Charge calculateCharge(MailItem deliveryItem) {
-        Double serviceFee = feeAdapter.getFee(deliveryItem.getDestFloor());
+    public Charge calculateCharge(MailItem deliveryItem, boolean estimateCharge) {
+        //if estimateCharge is true, then the cachePreference is also true
+        FeeResponse feeResponse = feeAdapter.getFee(deliveryItem.getDestFloor(),estimateCharge);
 
         Double activityCost = 0D;
         //configurable property below
         Double activityUnitPrice = Double.parseDouble(automailProperties.get("activityUnitPrice").toString());
-        Double stepMovementCost = Double.parseDouble(automailProperties.get("stepMovementCost").toString());
+        Double stepMovementUnitCost = Double.parseDouble(automailProperties.get("stepMovementCost").toString());
 
-        Double movementCost = stepMovementCost * deliveryItem.getDestFloor() * 2;
+        Double movementCostUnit = stepMovementUnitCost * deliveryItem.getDestFloor() * 2;
         Double lookUpCost = Double.parseDouble(automailProperties.get("lookUpCost").toString());
         Double markUpPercentage = Double.parseDouble(automailProperties.get("markUpPercentage").toString());
 
-        Double activityUnits = movementCost + lookUpCost;
+        Double activityUnits = movementCostUnit + lookUpCost*1;
         activityCost = activityUnits * activityUnitPrice;
-        Double cost = serviceFee + activityCost;
+        Double cost = feeResponse.getFees() + activityCost;
         Double charge = cost * (1 + markUpPercentage);
-        Charge chargeObj = new Charge(charge, cost, serviceFee, activityCost);
+        Charge chargeObj = new Charge(charge, cost, feeResponse.getFees(), activityCost);
+
+        Double billableActivity = 0D;
+        if(estimateCharge) {
+            billableActivity = lookUpCost*feeResponse.getNumOfCalls();
+        } else {
+            billableActivity = movementCostUnit + lookUpCost * feeResponse.getNumOfCalls();
+            totalCharge += charge;
+            totalFee += feeResponse.getFees();
+        }
+        totalBillableActivity += billableActivity;
+        totalBillableActivityCost += billableActivity * activityUnitPrice;
         
         return chargeObj;
-    }
-
-    public void updateStats(Charge charge) {
-        totalCharge += charge.charge;
-        totalActivity += charge.activity;
-        totalCost += charge.cost;
-        totalFee += charge.fee;
     }
 
 	@Override
@@ -67,8 +74,8 @@ public class ChargeService implements ChargeServiceInterface{
 	}
 
 	@Override
-	public Double getTotalCost() {
-		return totalCost;
+	public Double getTotalBillableActivity() {
+		return totalBillableActivity;
 	}
 
 	@Override
@@ -77,8 +84,8 @@ public class ChargeService implements ChargeServiceInterface{
 	}
 
 	@Override
-	public Double getTotalActivity() {
-		return totalActivity;
+	public Double getTotalBillableActivityCost() {
+		return totalBillableActivityCost;
 	}
 	
 	@Override
@@ -93,9 +100,9 @@ public class ChargeService implements ChargeServiceInterface{
 	
 	public void resetStats() {
 		totalCharge = 0D;
-		totalCost = 0D;
+        totalBillableActivityCost = 0D;
 		totalFee = 0D;
-		totalActivity = 0D;
+        totalBillableActivity = 0D;
 		feeAdapter.resetStats();
 	}
 

@@ -2,17 +2,15 @@ package automail;
 
 public interface ChargeServiceInterface {
 	
-	 public Charge calculateCharge(MailItem deliveryItem);
-
-	 public void updateStats(Charge charge);
+	 public Charge calculateCharge(MailItem deliveryItem, boolean estimateCharge);
 	 
 	 public Double getTotalCharge();
 	 
-	 public Double getTotalCost();
+	 public Double getTotalBillableActivity();
 	 
 	 public Double getTotalFee();
 	 
-	 public Double getTotalActivity();
+	 public Double getTotalBillableActivityCost();
 	 
 	 public Integer getFeeCallSuccessCount();
 	    

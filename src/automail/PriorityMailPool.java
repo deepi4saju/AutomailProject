@@ -21,7 +21,7 @@ public class PriorityMailPool extends MailPool{
     @Override
     public void addToPool(MailItem mailItem) {
         Item item = new Item(mailItem);
-        item.charge = chargeService.calculateCharge(mailItem).charge;
+        item.charge = chargeService.calculateCharge(mailItem,true).charge;
         getPool().add(item);
         getPool().sort(new ItemComparator());
     }

@@ -38,7 +38,6 @@ public class Simulation {
     private static ArrayList<MailItem> MAIL_DELIVERED;
     private static double total_delay = 0;
     private static WifiModem wModem = null;
-    private static FeeAdapter feeAdapter= null;
 	private static ChargeServiceInterface chargeService = null;
 
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
@@ -83,8 +82,7 @@ public class Simulation {
          */
         /* Instantiate MailPool and Automail */
      	//MailPool mailPool = new MailPool(NUM_ROBOTS);
-        feeAdapter = new BMCFeeAdapterImpl(wModem);
-        chargeService = ChargeService.getInstance(feeAdapter,automailProperties);
+        chargeService = ChargeService.getInstance(automailProperties);
         MailPool mailPool = MailPoolFactory.getInstance(NUM_ROBOTS, CHARGE_THRESHOLD, chargeService);
         
 		CHARGE_THRESHOLD = Double.parseDouble(automailProperties.getProperty("ChargeThreshold"));
@@ -215,8 +213,7 @@ public class Simulation {
 		/** Confirm the delivery and calculate the total score */
 		public void deliver(MailItem deliveryItem){
 			if(!MAIL_DELIVERED.contains(deliveryItem)){
-				Charge charge = chargeService.calculateCharge(deliveryItem);
-				chargeService.updateStats(charge);
+				Charge charge = chargeService.calculateCharge(deliveryItem,false);
 
 				MAIL_DELIVERED.add(deliveryItem);
 
@@ -253,11 +250,11 @@ public class Simulation {
     public static void printStats() {
     	System.out.println("**Stats**");
     	System.out.println("The total number of items delivered: "+MAIL_DELIVERED.size());
-    	System.out.println("The total billable activity: "+ chargeService.getTotalCost());
-    	System.out.println("The total activity cost: "+chargeService.getTotalActivity());
+    	System.out.println("The total billable activity: "+ chargeService.getTotalBillableActivity());
+    	System.out.println("The total activity cost: "+chargeService.getTotalBillableActivityCost());
     	System.out.println("The total service cost: "+chargeService.getTotalFee());
     	int totalLookups = chargeService.getFeeCallSuccessCount() + chargeService.getFeeCallFailureCount();
-		System.out.println(String.format("Total lookups: %s | success: %s | failure: %s ",
+		System.out.println(String.format("The total number of lookups: %s | success: %s | failure: %s ",
 				totalLookups,chargeService.getFeeCallSuccessCount(),chargeService.getFeeCallFailureCount()));
 	}
 

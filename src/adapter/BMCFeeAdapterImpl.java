@@ -5,6 +5,8 @@ import java.util.Map;
 
 import com.unimelb.swen30006.wifimodem.WifiModem;
 
+import simulation.Building;
+
 public class BMCFeeAdapterImpl implements FeeAdapter{
 
     private WifiModem modem;
@@ -14,33 +16,58 @@ public class BMCFeeAdapterImpl implements FeeAdapter{
     private static int successCalls = 0;
     private static int failureCalls = 0;
 
-    public BMCFeeAdapterImpl(WifiModem modem) {
-        this.modem = modem;
+    public BMCFeeAdapterImpl() {
+        try {
+            this.modem = WifiModem.getInstance(Building.MAILROOM_LOCATION);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     
 
     @Override
-    public Double getFee(int floorNum) {
+    public FeeResponse getFee(int floorNum, boolean cachePreference) {
+        int numOfCalls = 0;
+        boolean isCache = false;
+        boolean performLookup = true;
+        Double serviceFee = 0D;
 
-        Double serviceFee = modem.forwardCallToAPI_LookupPrice(floorNum);
-        if(serviceFee < 0){
+        if(cachePreference) {
             if(floorServiceFeeMap.containsKey(floorNum)) {
                 serviceFee = floorServiceFeeMap.get(floorNum);
-                failureCalls++;
-            } else {
-                // making the lookup in a loop until it returns a positive value. Negative means failure call.
-                while (serviceFee < 0) {
-                    failureCalls++;
-                    serviceFee = modem.forwardCallToAPI_LookupPrice(floorNum);
-                }
+                isCache = true;
+                performLookup = false;
             }
-        } else {
-            successCalls++;
-            floorServiceFeeMap.put(floorNum,serviceFee);
         }
 
-        return serviceFee;
+        if(performLookup) {
+            serviceFee = modem.forwardCallToAPI_LookupPrice(floorNum);
+            numOfCalls++;
+            if (serviceFee < 0) {
+                if (floorServiceFeeMap.containsKey(floorNum)) {
+                    serviceFee = floorServiceFeeMap.get(floorNum);
+                    isCache = true;
+                    failureCalls++;
+                } else {
+                    // making the lookup in a loop until it returns a positive value. Negative means failure call.
+                    while (serviceFee < 0) {
+                        failureCalls++;
+                        serviceFee = modem.forwardCallToAPI_LookupPrice(floorNum);
+                        numOfCalls++;
+                        if(serviceFee > 0) {
+                            successCalls++;
+                        }
+                    }
+                }
+            } else {
+                successCalls++;
+                floorServiceFeeMap.put(floorNum, serviceFee);
+            }
+        }
+
+        FeeResponse response = new FeeResponse(serviceFee, numOfCalls, isCache);
+        return response;
     }
 
 

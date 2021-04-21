@@ -2,7 +2,7 @@ package adapter;
 
 public interface FeeAdapter {
 
-    Double getFee(int floor);
+    FeeResponse getFee(int floor, boolean cachePreference);
     
     Integer getSuccessCount();
     
